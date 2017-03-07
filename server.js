@@ -4,9 +4,8 @@
 *
 *		Server 
 *		
-*		Serves an API for the user to serve static pages defined in the root directory of the 
-*		application as well as an API that exposes the heroes JSON files defined in the heroes
-*		directory. 
+*		API that serves static pages and as well stores user information about the game that they
+*		are playing
 */
 var http = require('http');
 var fs = require('fs');
@@ -26,6 +25,7 @@ function router(req, res) {
 		var route = (parsedUrl) ? parsedUrl.pathname : '';
 		var isMemoryRoute = route.startsWith('/memory');
 		if (isMemoryRoute) {
+			// All routes starting with /memory go to our memory router
 			memoryRouter(parsedUrl, req, res);
 		}
 		else {
@@ -68,41 +68,48 @@ function fileRouter(parsedUrl, res) {
 	res.end(page);
 }
 /***
-*		Hero router, handles serving JSON hero objects defined in the heroes directory
-*
-*		Serves all heroes and specific heros requested by name
+*		Memory game router, handles registering a user for a new game & sending over 
+*		information about a specific card in the game
 */
 function memoryRouter(parsedUrl, req, res) {
 	var data = '';
 	var route = parsedUrl.pathname;
 	var query = parsedUrl.query;
 	if (req.method === 'POST' && route === '/memory/intro') {
+		// Request to register a user with a new game
 		readRequestBody(req, function(err, data){
 			userList[data.id] = makeBoard(4);
 			// Setting content type to plain text
 			res.writeHead(200, {'content-type': 'text/plain'});
-			// Sending integer response
 			res.end();
 		});
 	} 
 	else if (req.method === 'GET' && route === '/memory/card') {
+		// Request to get information about a specific card
 		if (query.id && query.rowIdx && query.cardIdx) {
+			// Three parameters need to be sent in the query
+			// We'll look into our internal game board for this user at the requested
+			// row and column (card) index and send that card value to them
 			data = userList[query.id][query.rowIdx][query.cardIdx];
 		}
 		// Setting content type to plain text
 		res.writeHead(200, {'content-type': 'text/plain'});
-		// Sending integer response
+		// Sending response
 		res.end('' + data);
 	}
 	else {
 		// Setting content type to plain text
 		res.writeHead(200, {'content-type': 'text/plain'});
-		// Sending integer response
+		// Sending response
 		res.end(data);
 	}
 }
+/**
+ *	Parses a POST request for its data and returns the JSON object
+ */
 function readRequestBody(req, done) {
 	var body = '';
+	// Data comes in as a stream, so we'll read it in chunks
 	req.on('data', function (chunk) {
 		body += chunk;
 	});
